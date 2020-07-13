@@ -1,82 +1,88 @@
-using Xunit;
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace BbsSignatures.Tests
 {
     public class BlsTests
     {
-        [Fact(DisplayName = "Get BLS secret key size")]
+        [Test(Description = "Get BLS secret key size")]
         public void GetSecretKeySize()
         {
-            var result = NativeMethods.bls_secret_key_size();
+            var actual = Native.bls_secret_key_size();
 
-            Assert.Equal(32, result);
+            Assert.AreEqual(actual, 32);
         }
 
-        [Fact(DisplayName = "Get BLS public key size")]
+        [Test(Description = "Get BLS public key size")]
         public void GetPublicKeySize()
         {
-            var result = NativeMethods.bls_public_key_size();
+            var actual = Native.bls_public_key_size();
 
-            Assert.Equal(96, result);
+            Assert.AreEqual(actual, 96);
         }
 
-        [Fact(DisplayName = "Generate new BLS key pair with seed")]
+        [Test(Description = "Generate new BLS key pair with seed")]
         public void GenerateKeyWithSeed()
         {
             var seed = new byte[] { 1, 2, 3 };
 
-            var secretKey = BlsSecretKey.Generate(seed);
-            var dPublicKey = secretKey.GetDeterministicPublicKey();
+            var actual = BbsProvider.GenerateBlsKey(seed);
 
-            Assert.NotNull(secretKey);
-            Assert.NotNull(dPublicKey);
-            Assert.NotNull(secretKey.Key);
-
-            Assert.Equal(96, dPublicKey.Key.Count);
-            Assert.Equal(32, secretKey.Key.Count);
+            Assert.NotNull(actual);
+            Assert.NotNull(actual.SecretKey);
+            Assert.NotNull(actual.PublicKey);
+            Assert.AreEqual(32, actual.SecretKey.Count);
+            Assert.AreEqual(96, actual.PublicKey.Count);
         }
 
-        [Fact(DisplayName = "Generate BLS key pair without seed using wrapper class")]
+        [Test(Description = "Generate BLS key pair without seed using wrapper class")]
         public void GenerateBlsKeyWithoutSeed()
         {
-            var secretKey = BlsSecretKey.Generate();
-            var dPublicKey = secretKey.GetDeterministicPublicKey();
+            var blsKeyPair = BbsProvider.GenerateBlsKey();
+            var dPublicKey = blsKeyPair.PublicKey;
 
-            Assert.NotNull(secretKey);
+            Assert.NotNull(blsKeyPair);
             Assert.NotNull(dPublicKey);
-            Assert.NotNull(secretKey.Key);
+            Assert.NotNull(blsKeyPair.SecretKey);
 
-            Assert.Equal(96, dPublicKey.Key.Count);
-            Assert.Equal(32, secretKey.Key.Count);
+            Assert.AreEqual(96, dPublicKey.Count);
+            Assert.AreEqual(32, blsKeyPair.SecretKey.Count);
         }
 
-        [Fact(DisplayName = "Create BBS public key from BLS secret key with message count 1")]
+        [Test(Description = "Create BBS public key from BLS secret key with message count 1")]
         public void CreateBbsKeyFromBlsSecretKey()
         {
-            var secretKey = BlsSecretKey.Generate();
-            var publicKey = secretKey.GeneratePublicKey(1);
+            var secretKey = BbsProvider.GenerateBlsKey();
+            var publicKey = secretKey.GeyBbsKeyPair(1);
 
             Assert.NotNull(secretKey);
             Assert.NotNull(publicKey);
-            Assert.NotNull(secretKey.Key);
+            Assert.NotNull(secretKey.SecretKey);
 
-            Assert.Equal(196, publicKey.Key.Count);
-            Assert.Equal(32, secretKey.Key.Count);
+            Assert.AreEqual(196, publicKey.PublicKey.Count);
+            Assert.AreEqual(32, secretKey.SecretKey.Count);
         }
 
-        [Fact(DisplayName = "Create BBS public key from BLS public key with message count 1")]
+        [Test(Description = "Create BBS public key from BLS public key with message count 1")]
         public void CreateBbsKeyFromBlsPublicKey()
         {
-            var secretKey = BlsSecretKey.Generate();
-            var dPublicKey = secretKey.GetDeterministicPublicKey();
-            var publicKey = dPublicKey.GeneratePublicKey(1);
+            var blsKeypair = BbsProvider.GenerateBlsKey();
+            var bbsKeyPair = new BlsKeyPair(blsKeypair.PublicKey.ToArray());
 
-            Assert.NotNull(secretKey);
+            Assert.IsNull(bbsKeyPair.SecretKey);
+
+            var publicKey = bbsKeyPair.GeyBbsKeyPair(1);
+
+            Assert.NotNull(blsKeypair.SecretKey);
             Assert.NotNull(publicKey);
-            Assert.NotNull(secretKey.Key);
+            Assert.NotNull(bbsKeyPair.PublicKey);
+            Assert.IsNull(bbsKeyPair.SecretKey);
 
-            Assert.Equal(196, publicKey.Key.Count);
-            Assert.Equal(32, secretKey.Key.Count);
+            Assert.AreEqual(196, publicKey.PublicKey.Count);
+            Assert.AreEqual(32, blsKeypair.SecretKey.Count);
         }
     }
 }

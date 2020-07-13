@@ -1,49 +1,28 @@
 ﻿using System.Threading.Tasks;
-using Xunit;
+using NUnit.Framework;
 
 namespace BbsSignatures.Tests
 {
     public class BbsBlindCommitmentTests
     {
-        [Fact(DisplayName = "Get blinded signature size")]
+        [Test(Description = "Get blinded signature size")]
         public void GetBbsBlindSignatureSize()
         {
-            var result = NativeMethods.bbs_blind_signature_size();
+            var result = Native.bbs_blind_signature_size();
 
-            Assert.Equal(expected: 112, actual: result);
+            Assert.AreEqual(expected: 112, actual: result);
         }
 
-        //[Fact(DisplayName = "Create blind commitment")]
-        //public void BlindCommitmentSingleMessage()
-        //{
-        //    var keyPair = BlsSecretKey.Generate();
-        //    var bbsPublicKey = keyPair.GeneratePublicKey(1);
-
-        //    var handle = NativeMethods.bbs_blind_commitment_context_init(out var error);
-        //    Assert.Equal(0, error.Code);
-        //    NativeMethods.bbs_blind_commitment_context_add_message_string(handle, 0, "test", out error);
-        //    Assert.Equal(0, error.Code);
-
-        //    NativeMethods.bbs_blind_commitment_context_set_nonce_string(handle, "123", out error);
-        //    Assert.Equal(0, error.Code);
-        //    NativeMethods.bbs_blind_commitment_context_set_public_key(handle, bbsPublicKey.Key, out error);
-        //    Assert.Equal(0, error.Code);
-
-        //    NativeMethods.bbs_blind_commitment_context_finish(handle, out var commitment, out var outContext, out var blindingFactor, out error);
-        //    Assert.Equal(0, error.Code);
-
-        //    Assert.NotNull(commitment.Dereference());
-        //    Assert.NotNull(outContext.Dereference());
-        //    Assert.NotNull(blindingFactor.Dereference());
-        //}
-
-        [Fact(DisplayName = "Create blind commitment using API")]
-        public async Task BlindCommitmentSingleMessageUsingApi()
+        [Test(Description = "Create blinded commitment")]
+        public void BlindCommitmentSingleMessageUsingApi()
         {
-            var myKey = BlsSecretKey.Generate();
-            var publicKey = myKey.GeneratePublicKey(1);
+            var myKey = BbsProvider.GenerateBlsKey();
+            var publicKey = myKey.GeyBbsKeyPair(1);
 
-            var commitment = await BbsProvider.CreateBlindCommitmentAsync(publicKey, "123", new[] { new IndexedMessage { Index = 0, Message = "message_0" } });
+            var commitment = BbsProvider.CreateBlindedCommitment(new CreateBlindedCommitmentRequest(
+                publicKey: publicKey,
+                messages: new[] { new IndexedMessage { Index = 0, Message = "message_0" } },
+                nonce: "123"));
 
             Assert.NotNull(commitment);
             Assert.NotNull(commitment.BlindingFactor);

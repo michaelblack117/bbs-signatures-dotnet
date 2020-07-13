@@ -1,28 +1,59 @@
-﻿using System.Threading.Tasks;
-using Xunit;
+﻿using System;
+using NUnit.Framework;
 
 namespace BbsSignatures.Tests
 {
     public class BbsSignTests
     {
-        [Fact(DisplayName = "Get signature size")]
+        [Test(Description = "Get signature size")]
         public void GetSignatureSize()
         {
-            var result = NativeMethods.bbs_signature_size();
+            var result = Native.bbs_signature_size();
 
-            Assert.Equal(112, result);
+            Assert.AreEqual(112, result);
         }
 
-        [Fact(DisplayName = "Sign message")]
-        public async Task SignSingleMessageUsingApi()
+        [Test(Description = "Sign message")]
+        public void SignSingleMessageUsingApi()
         {
-            var myKey = BlsSecretKey.Generate();
-            var publiKey = myKey.GeneratePublicKey(1);
+            var myKey = BbsProvider.GenerateBlsKey();
 
-            var signature = await BbsProvider.SignAsync(myKey, publiKey, new[] { "message" });
+            var signature = BbsProvider.Sign(new SignRequest(myKey, new[] { "message" }));
 
             Assert.NotNull(signature);
-            Assert.Equal(signature.Length, NativeMethods.bbs_signature_size());
+            Assert.AreEqual(signature.Length, Native.bbs_signature_size());
+        }
+
+        [Test(Description = "Sign multiple messages")]
+        public void SignMultipleeMessages()
+        {
+            var keyPair = BbsProvider.GenerateBlsKey();
+
+            var signature = BbsProvider.Sign(new SignRequest(keyPair, new[] { "message_1", "message_2" }));
+
+            Assert.NotNull(signature);
+            Assert.AreEqual(BbsProvider.SignatureSize, signature.Length);
+        }
+
+        [Test(Description = "Verify throws if invalid signature")]
+        public void VerifyThrowsIfInvalidSignature()
+        {
+            var blsKeyPair = BbsProvider.GenerateBlsKey();
+            var bbsKeyPair = blsKeyPair.GeyBbsKeyPair(1);
+
+            Assert.Throws<BbsException>(() => BbsProvider.Verify(new VerifyRequest(bbsKeyPair, Array.Empty<byte>(), new[] { "message_0" })), "Signature cannot be empty array");
+        }
+
+        [Test(Description = "Sign message with one public key, verify with another")]
+        public void SignAndVerifyDifferentKeys()
+        {
+            var keyPair = BbsProvider.GenerateBlsKey();
+            var messages = new[] { "message_1", "message_2" };
+
+            var signature = BbsProvider.Sign(new SignRequest(keyPair, messages));
+
+            var result = BbsProvider.Verify(new VerifyRequest(keyPair.GeyBbsKeyPair(2), signature, messages));
+            Assert.True(result);
         }
     }
 }
